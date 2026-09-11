@@ -1,0 +1,692 @@
+[
+    {
+        "id": "broker-mosquitto",
+        "type": "mqtt-broker",
+        "name": "Mosquitto (docker)",
+        "broker": "mosquitto",
+        "port": "1883",
+        "clientid": "node-red",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "home/node-red/status",
+        "birthQos": "0",
+        "birthRetain": "true",
+        "birthPayload": "online",
+        "closeTopic": "home/node-red/status",
+        "closeQos": "0",
+        "closeRetain": "true",
+        "closePayload": "offline",
+        "willTopic": "home/node-red/status",
+        "willQos": "0",
+        "willRetain": "true",
+        "willPayload": "offline",
+        "userProps": "",
+        "sessionExpiry": "",
+        "credentials": {
+            "user": "${MQTT_USER}",
+            "password": "${MQTT_PASSWORD}"
+        }
+    },
+    {
+        "id": "ui-theme-main",
+        "type": "ui-theme",
+        "name": "Тема",
+        "colors": {
+            "surface": "#1c1f26",
+            "primary": "#0094CE",
+            "bgPage": "#13161c",
+            "groupBg": "#21252e",
+            "groupOutline": "#3a3f4b"
+        },
+        "sizes": {
+            "density": "default",
+            "pagePadding": "12px",
+            "groupGap": "12px",
+            "groupBorderRadius": "6px",
+            "widgetGap": "12px"
+        }
+    },
+    {
+        "id": "ui-base-main",
+        "type": "ui-base",
+        "name": "Умный дом",
+        "path": "/dashboard",
+        "includeClientData": true,
+        "acceptsClientConfig": [
+            "ui-notification",
+            "ui-control"
+        ],
+        "showPathInSidebar": false,
+        "headerContent": "page",
+        "navigationStyle": "default",
+        "titleBarStyle": "default"
+    },
+    {
+        "id": "ui-page-kitchen",
+        "type": "ui-page",
+        "name": "Кухня",
+        "ui": "ui-base-main",
+        "path": "/kitchen",
+        "icon": "silverware-fork-knife",
+        "layout": "grid",
+        "theme": "ui-theme-main",
+        "breakpoints": [
+            {
+                "name": "Default",
+                "px": 0,
+                "cols": 3
+            },
+            {
+                "name": "Tablet",
+                "px": 576,
+                "cols": 6
+            },
+            {
+                "name": "Small Desktop",
+                "px": 768,
+                "cols": 9
+            },
+            {
+                "name": "Desktop",
+                "px": 1024,
+                "cols": 12
+            }
+        ],
+        "order": 1,
+        "className": "",
+        "visible": true,
+        "disabled": false
+    },
+    {
+        "id": "ui-group-climate",
+        "type": "ui-group",
+        "name": "Климат",
+        "page": "ui-page-kitchen",
+        "width": "6",
+        "height": "1",
+        "order": 1,
+        "showTitle": true,
+        "className": "",
+        "visible": true,
+        "disabled": false,
+        "groupType": "default"
+    },
+    {
+        "id": "ui-group-control",
+        "type": "ui-group",
+        "name": "Управление",
+        "page": "ui-page-kitchen",
+        "width": "6",
+        "height": "1",
+        "order": 2,
+        "showTitle": true,
+        "className": "",
+        "visible": true,
+        "disabled": false,
+        "groupType": "default"
+    },
+    {
+        "id": "ui-group-history",
+        "type": "ui-group",
+        "name": "История",
+        "page": "ui-page-kitchen",
+        "width": "12",
+        "height": "1",
+        "order": 3,
+        "showTitle": true,
+        "className": "",
+        "visible": true,
+        "disabled": false,
+        "groupType": "default"
+    },
+    {
+        "id": "tab-kitchen",
+        "type": "tab",
+        "label": "Кухня",
+        "disabled": false,
+        "info": "Приём данных с датчика и вывод на дашборд.\n\nДашборд: http://localhost:1880/dashboard",
+        "env": []
+    },
+    {
+        "id": "mqtt-temp",
+        "type": "mqtt in",
+        "name": "🌡 температура",
+        "topic": "home/kitchen/temperature",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "broker-mosquitto",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "fn-temp"
+            ]
+        ],
+        "z": "tab-kitchen"
+    },
+    {
+        "id": "fn-temp",
+        "type": "function",
+        "name": "в число",
+        "func": "// Из MQTT payload приходит строкой. Приводим к числу и отбрасываем мусор.\nconst value = parseFloat(msg.payload);\nif (Number.isNaN(value)) {\n    node.warn(`Не число: ${msg.payload}`);\n    return null;   // null = сообщение дальше не пойдёт\n}\nmsg.payload = Math.round(value * 10) / 10;\nmsg.topic = 'Температура';\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 100,
+        "wires": [
+            [
+                "gauge-temp",
+                "chart-climate",
+                "dbg-temp"
+            ]
+        ],
+        "z": "tab-kitchen"
+    },
+    {
+        "id": "gauge-temp",
+        "type": "ui-gauge",
+        "group": "ui-group-climate",
+        "name": "",
+        "order": 1,
+        "width": "3",
+        "height": "4",
+        "gtype": "gage-gauge",
+        "gstyle": "rounded",
+        "title": "Температура",
+        "units": "°C",
+        "icon": "",
+        "segments": [
+            {
+                "from": "0",
+                "color": "#5b9bd5",
+                "text": "",
+                "tooltip": ""
+            },
+            {
+                "from": "18",
+                "color": "#53a451",
+                "text": "",
+                "tooltip": ""
+            },
+            {
+                "from": "26",
+                "color": "#e08c3b",
+                "text": "",
+                "tooltip": ""
+            }
+        ],
+        "min": "0",
+        "max": "40",
+        "sizeThickness": 16,
+        "sizeGap": 4,
+        "sizeKeyThickness": 8,
+        "styleRounded": true,
+        "styleGlow": false,
+        "prefix": "",
+        "suffix": "",
+        "className": "",
+        "x": 600,
+        "y": 60,
+        "wires": [],
+        "z": "tab-kitchen"
+    },
+    {
+        "id": "dbg-temp",
+        "type": "debug",
+        "name": "отладка",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload",
+        "statusType": "auto",
+        "x": 600,
+        "y": 160,
+        "wires": [],
+        "z": "tab-kitchen"
+    },
+    {
+        "id": "mqtt-hum",
+        "type": "mqtt in",
+        "name": "💧 влажность",
+        "topic": "home/kitchen/humidity",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "broker-mosquitto",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 150,
+        "y": 240,
+        "wires": [
+            [
+                "fn-hum"
+            ]
+        ],
+        "z": "tab-kitchen"
+    },
+    {
+        "id": "fn-hum",
+        "type": "function",
+        "name": "в число",
+        "func": "const value = parseFloat(msg.payload);\nif (Number.isNaN(value)) return null;\nmsg.payload = Math.round(value);\nmsg.topic = 'Влажность';\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 240,
+        "wires": [
+            [
+                "gauge-hum",
+                "chart-climate"
+            ]
+        ],
+        "z": "tab-kitchen"
+    },
+    {
+        "id": "gauge-hum",
+        "type": "ui-gauge",
+        "group": "ui-group-climate",
+        "name": "",
+        "order": 2,
+        "width": "3",
+        "height": "4",
+        "gtype": "gage-gauge",
+        "gstyle": "rounded",
+        "title": "Влажность",
+        "units": "%",
+        "icon": "",
+        "segments": [
+            {
+                "from": "0",
+                "color": "#e08c3b",
+                "text": "",
+                "tooltip": ""
+            },
+            {
+                "from": "35",
+                "color": "#53a451",
+                "text": "",
+                "tooltip": ""
+            },
+            {
+                "from": "65",
+                "color": "#5b9bd5",
+                "text": "",
+                "tooltip": ""
+            }
+        ],
+        "min": "0",
+        "max": "100",
+        "sizeThickness": 16,
+        "sizeGap": 4,
+        "sizeKeyThickness": 8,
+        "styleRounded": true,
+        "styleGlow": false,
+        "prefix": "",
+        "suffix": "",
+        "className": "",
+        "x": 600,
+        "y": 240,
+        "wires": [],
+        "z": "tab-kitchen"
+    },
+    {
+        "id": "chart-climate",
+        "type": "ui-chart",
+        "group": "ui-group-history",
+        "name": "",
+        "label": "",
+        "order": 1,
+        "chartType": "line",
+        "category": "topic",
+        "categoryType": "msg",
+        "xAxisLabel": "",
+        "xAxisProperty": "",
+        "xAxisPropertyType": "timestamp",
+        "xAxisType": "time",
+        "xAxisFormat": "",
+        "xAxisFormatType": "auto",
+        "xmin": "",
+        "xmax": "",
+        "yAxisLabel": "",
+        "yAxisProperty": "payload",
+        "yAxisPropertyType": "msg",
+        "ymin": "",
+        "ymax": "",
+        "bins": 10,
+        "action": "append",
+        "pointShape": "circle",
+        "pointRadius": 3,
+        "showLegend": true,
+        "removeOlder": "1",
+        "removeOlderUnit": "3600",
+        "removeOlderPoints": "",
+        "colorScheme": "category-10",
+        "textColor": [
+            "#dddddd"
+        ],
+        "textColorDefault": true,
+        "gridColor": [
+            "#3a3f4b"
+        ],
+        "gridColorDefault": true,
+        "width": "12",
+        "height": "6",
+        "className": "",
+        "x": 600,
+        "y": 380,
+        "wires": [
+            []
+        ],
+        "z": "tab-kitchen"
+    },
+    {
+        "id": "mqtt-status",
+        "type": "mqtt in",
+        "name": "статус датчика",
+        "topic": "home/kitchen/status",
+        "qos": "0",
+        "datatype": "utf8",
+        "broker": "broker-mosquitto",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 150,
+        "y": 460,
+        "wires": [
+            [
+                "fn-status"
+            ]
+        ],
+        "z": "tab-kitchen"
+    },
+    {
+        "id": "fn-status",
+        "type": "function",
+        "name": "online/offline",
+        "func": "// Брокер сам пришлёт 'offline', если плата отвалится (Last Will).\nmsg.payload = msg.payload === 'online' ? '🟢 на связи' : '🔴 нет связи';\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 460,
+        "wires": [
+            [
+                "text-status"
+            ]
+        ],
+        "z": "tab-kitchen"
+    },
+    {
+        "id": "text-status",
+        "type": "ui-text",
+        "group": "ui-group-control",
+        "order": 1,
+        "width": "6",
+        "height": "1",
+        "label": "Датчик",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#717171",
+        "className": "",
+        "x": 600,
+        "y": 460,
+        "wires": [],
+        "z": "tab-kitchen",
+        "name": ""
+    },
+    {
+        "id": "switch-relay",
+        "type": "ui-switch",
+        "group": "ui-group-control",
+        "order": 2,
+        "width": "6",
+        "height": "1",
+        "label": "Реле",
+        "tooltip": "",
+        "className": "",
+        "clickableArea": "switch",
+        "style": "",
+        "passthru": false,
+        "decouple": "true",
+        "topic": "home/kitchen/relay/set",
+        "topicType": "str",
+        "oncvalue": "ON",
+        "oncvalueType": "str",
+        "offcvalue": "OFF",
+        "offcvalueType": "str",
+        "onicon": "",
+        "officon": "",
+        "oncolor": "",
+        "offcolor": "",
+        "x": 150,
+        "y": 600,
+        "wires": [
+            [
+                "mqtt-relay-out"
+            ]
+        ],
+        "z": "tab-kitchen",
+        "name": ""
+    },
+    {
+        "id": "mqtt-relay-out",
+        "type": "mqtt out",
+        "name": "→ реле",
+        "topic": "",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "broker-mosquitto",
+        "x": 400,
+        "y": 600,
+        "wires": [],
+        "z": "tab-kitchen"
+    },
+    {
+        "id": "mqtt-relay-in",
+        "type": "mqtt in",
+        "name": "состояние реле",
+        "topic": "home/kitchen/relay",
+        "qos": "0",
+        "datatype": "utf8",
+        "broker": "broker-mosquitto",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 150,
+        "y": 680,
+        "wires": [
+            [
+                "fn-relay-state"
+            ]
+        ],
+        "z": "tab-kitchen"
+    },
+    {
+        "id": "fn-relay-state",
+        "type": "function",
+        "name": "в булево",
+        "func": "// decouple=true у переключателя: он рисует состояние только по входящему\n// сообщению. Так тумблер показывает реальное состояние реле, а не желаемое.\nmsg.payload = msg.payload === 'ON';\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 680,
+        "wires": [
+            [
+                "switch-relay"
+            ]
+        ],
+        "z": "tab-kitchen"
+    },
+    {
+        "id": "tab-sandbox",
+        "type": "tab",
+        "label": "Песочница",
+        "disabled": false,
+        "info": "Примеры для обучения: inject → function → debug.\nЗапускай кнопкой слева от inject-ноды.",
+        "env": []
+    },
+    {
+        "id": "inj-hello",
+        "type": "inject",
+        "name": "нажми меня",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "22.7",
+        "payloadType": "str",
+        "x": 160,
+        "y": 100,
+        "wires": [
+            [
+                "fn-hello"
+            ]
+        ],
+        "z": "tab-sandbox"
+    },
+    {
+        "id": "fn-hello",
+        "type": "function",
+        "name": "обычный JS",
+        "func": "// Это Node.js. Всё, что ты знаешь про JS, работает здесь.\nconst t = parseFloat(msg.payload);\n\n// node.warn() — печать в правую панель «Отладка»\nnode.warn(`Пришло: ${t}`);\n\n// Состояние между вызовами живёт в context\nconst count = (context.get('count') || 0) + 1;\ncontext.set('count', count);\n\nmsg.payload = { температура: t, жарко: t > 25, вызов: count };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 100,
+        "wires": [
+            [
+                "dbg-hello"
+            ]
+        ],
+        "z": "tab-sandbox"
+    },
+    {
+        "id": "dbg-hello",
+        "type": "debug",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 580,
+        "y": 100,
+        "wires": [],
+        "z": "tab-sandbox"
+    },
+    {
+        "id": "inj-fake",
+        "type": "inject",
+        "name": "фейковый датчик (каждые 5 с)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "5",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payloadType": "date",
+        "x": 220,
+        "y": 220,
+        "wires": [
+            [
+                "fn-fake"
+            ]
+        ],
+        "z": "tab-sandbox"
+    },
+    {
+        "id": "fn-fake",
+        "type": "function",
+        "name": "сгенерировать температуру",
+        "func": "// Публикуем правдоподобную температуру прямо из Node-RED —\n// удобно, пока ESP32 ещё едет с маркетплейса.\nlet t = context.get('t') ?? 22;\nt += (Math.random() - 0.5) * 0.6;\nt = Math.min(30, Math.max(15, t));\ncontext.set('t', t);\n\nreturn { topic: 'home/kitchen/temperature', payload: t.toFixed(2), retain: true };",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 220,
+        "wires": [
+            [
+                "mqtt-fake-out"
+            ]
+        ],
+        "z": "tab-sandbox"
+    },
+    {
+        "id": "mqtt-fake-out",
+        "type": "mqtt out",
+        "name": "→ брокер",
+        "topic": "",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "broker-mosquitto",
+        "x": 780,
+        "y": 220,
+        "wires": [],
+        "z": "tab-sandbox"
+    }
+]

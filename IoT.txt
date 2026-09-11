@@ -1,0 +1,85 @@
+====================================================================
+РУКОВОДСТВО ПО IoT И УМНЫМ ДОМАМ ДЛЯ JAVASCRIPT-РАЗРАБОТЧИКА
+====================================================================
+
+1. ГДЕ КУПИТЬ ЖЕЛЕЗО (ССЫЛКИ И ЗАПРОСЫ)
+
+* ESP32 (Микроконтроллер для датчиков)
+Ищи плату: ESP32-WROOM-32 (лучше с разъемом Type-C).
+    - Ozon: https://ozon.ru
+    - Wildberries: https://www.wildberries.ru/catalog/tags/plata-esp32
+
+   * Raspberry Pi (Сервер Умного дома)
+     Ищи модель: Raspberry Pi 4 Model B (на 4GB или 8GB RAM).
+     - Ozon: https://ozon.ru
+     - Wildberries: https://www.wildberries.ru/catalog/elektronika/tags/raspberry-pi-4
+
+   * Набор датчиков для старта (ищи на тех же маркетплейсах):
+     - Датчик температуры и влажности: DHT22 или BME280
+     - Модуль реле (Relay Module 5V)
+     - Беспаечная макетная плата (Breadboard)
+     - Провода-перемычки "папа-мама" (Dupont wires)
+
+
+
+2. РЕСУРСЫ ДЛЯ ОБУЧЕНИЯ
+
+   * Текст и документация:
+     - Документация Node-RED: https://nodered.org (Раздел Getting Started)
+     - Хабр (Статьи по теме): https://habr.com (Ищи по тегам "Node-RED", "IoT", "Умный дом")
+     - Электроника для новичков (AlexGyver): https://alexgyver.ru/ (База по датчикам и железу)
+
+   * Видео на YouTube (вбивай в поиск):
+     - "Node-RED умный дом с нуля" (Каналы: "Kvazis", "Умный Дом своими руками")
+     - "ESP32 MQTT Node.js учебный курс"
+
+
+
+3. ИНФРАСТРУКТУРА В DOCKER
+
+   Шаг 1. Создай файл "mosquitto.conf" (Конфиг для MQTT-брокера):
+   --------------------------------------------------------------
+   listener 1883
+   allow_anonymous true
+   --------------------------------------------------------------
+
+   Шаг 2. Создай файл "docker-compose.yml" в той же папке:
+   --------------------------------------------------------------
+   version: '3.8'
+
+   services:
+     mosquitto:
+       image: eclipse-mosquitto:latest
+       container_name: mosquitto
+       restart: always
+       ports:
+         - "1883:1883"
+         - "9001:9001"
+       volumes:
+         - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+         - mosquitto_data:/mosquitto/data
+         - mosquitto_log:/mosquitto/log
+
+     node-red:
+       image: nodered/node-red:latest
+       container_name: node-red
+       restart: always
+       ports:
+         - "1880:1880"
+       environment:
+         - TZ=Europe/Moscow
+       volumes:
+         - nodered_data:/data
+       depends_on:
+         - mosquitto
+
+   volumes:
+     mosquitto_data:
+     mosquitto_log:
+     nodered_data:
+   --------------------------------------------------------------
+
+   Шаг 3. Запуск в терминале:
+   Команда: docker compose up -d
+   После этого открывай в браузере: http://localhost:1880
+====================================================================

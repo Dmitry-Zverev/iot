@@ -1,0 +1,15 @@
+{
+  "name": "iot-lab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Учебный стенд: MQTT + Node-RED + ESP32",
+  "type": "commonjs",
+  "scripts": {
+    "sim": "node scripts/fake-sensor.js",
+    "listen": "node scripts/mqtt-listen.js"
+  },
+  "dependencies": {
+    "mqtt": "^5.10.1",
+    "dotenv": "^16.4.5"
+  }
+}

@@ -1,0 +1,100 @@
+# =====================================================================
+#  ESPHome: датчик температуры/влажности на ESP32 + BME280
+#  Самый быстрый путь для JS-разработчика: никакого C++, только YAML.
+#
+#  Как прошить (один раз, по USB):
+#    pip install esphome
+#    esphome run kitchen-sensor.yaml
+#  Дальше обновления прошивки летят по воздуху (OTA).
+#
+#  ПЕРЕД ПРОШИВКОЙ: создай рядом файл secrets.yaml (он в .gitignore):
+#    wifi_ssid: "ИмяТвоегоWiFi"
+#    wifi_password: "парольWiFi"
+#    mqtt_broker: "192.168.1.50"     # IP компьютера, где крутится docker
+#    mqtt_user: "iot"
+#    mqtt_password: "пароль из .env"
+#    ota_password: "любой_пароль"
+# =====================================================================
+
+esphome:
+  name: kitchen-sensor
+  friendly_name: Кухня
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  level: INFO
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  # Если WiFi недоступен — плата поднимет свою точку доступа для настройки
+  ap:
+    ssid: "kitchen-sensor-setup"
+    password: "configme123"
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+mqtt:
+  broker: !secret mqtt_broker
+  port: 1883
+  username: !secret mqtt_user
+  password: !secret mqtt_password
+  # Схема топиков — см. docs/MQTT-TOPICS.md
+  topic_prefix: home/kitchen
+  # Сообщение, которое брокер разошлёт сам, если плата отвалится
+  birth_message:
+    topic: home/kitchen/status
+    payload: "online"
+    retain: true
+  will_message:
+    topic: home/kitchen/status
+    payload: "offline"
+    retain: true
+
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+  scan: true
+
+sensor:
+  - platform: bme280_i2c
+    address: 0x76
+    update_interval: 30s
+    temperature:
+      name: "Температура"
+      # Публикуется в home/kitchen/sensor/температура/state — некрасиво.
+      # Поэтому задаём топик явно:
+      state_topic: home/kitchen/temperature
+    humidity:
+      name: "Влажность"
+      state_topic: home/kitchen/humidity
+    pressure:
+      name: "Давление"
+      state_topic: home/kitchen/pressure
+
+  - platform: wifi_signal
+    name: "WiFi сигнал"
+    state_topic: home/kitchen/rssi
+    update_interval: 60s
+
+  - platform: uptime
+    name: "Аптайм"
+    state_topic: home/kitchen/uptime
+    update_interval: 60s
+
+# Реле на GPIO23 — им можно щёлкать из Node-RED,
+# отправив "ON"/"OFF" в home/kitchen/relay/set
+switch:
+  - platform: gpio
+    pin: GPIO23
+    name: "Реле"
+    id: relay_1
+    state_topic: home/kitchen/relay
+    command_topic: home/kitchen/relay/set
+    retain: true

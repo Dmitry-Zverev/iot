@@ -1,0 +1,49 @@
+name: iot-lab
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: iot-mosquitto
+    restart: unless-stopped
+    ports:
+      # 1883 — обычный MQTT (для ESP32, Node-RED, телефона)
+      - "${MQTT_BIND:-0.0.0.0}:1883:1883"
+      # 9001 — MQTT поверх WebSocket (для браузерных клиентов)
+      - "${MQTT_BIND:-0.0.0.0}:9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "$$SYS/broker/uptime",
+             "-u", "${MQTT_USER:-iot}", "-P", "${MQTT_PASSWORD}", "-C", "1", "-W", "3"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  node-red:
+    build:
+      context: ./node-red
+    image: iot-lab/node-red:4.0
+    container_name: iot-node-red
+    restart: unless-stopped
+    ports:
+      - "${NODERED_BIND:-0.0.0.0}:1880:1880"
+    environment:
+      TZ: ${TZ:-Europe/Moscow}
+      NODE_RED_ADMIN_USER: ${NODE_RED_ADMIN_USER:-admin}
+      NODE_RED_ADMIN_HASH: ${NODE_RED_ADMIN_HASH}
+      NODE_RED_CREDENTIAL_SECRET: ${NODE_RED_CREDENTIAL_SECRET}
+      # Эти две подставляются прямо в MQTT-ноду через ${...} в flows.json
+      MQTT_USER: ${MQTT_USER:-iot}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
+    volumes:
+      # Bind-mount, а не named volume: флоу лежат в репозитории и версионируются git'ом
+      - ./node-red/data:/data
+    depends_on:
+      - mosquitto
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
